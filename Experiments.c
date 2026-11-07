@@ -34,7 +34,7 @@ int apply_bsc_channel(uint32_t codeword, double p, uint32_t *received_word)
     return 0;
 }
 
-//исследование для точного количества ошибок
+//создание случайной маски для точного количества ошибок
 int generate_error_pattern(unsigned int weight, uint32_t *error_pattern)
 {
     if (error_pattern == NULL || weight > CODE_BITS) return -1;
@@ -67,3 +67,21 @@ int generate_error_pattern(unsigned int weight, uint32_t *error_pattern)
 
     return 0;
 }
+
+//применение маски ошибок к слову
+int apply_error_pattern(uint32_t codeword, uint32_t error_pattern, uint32_t *received_word)
+{
+    if ((codeword >> CODE_BITS) != 0u || (error_pattern >> CODE_BITS) != 0u || received_word == NULL)
+    {
+        return -1;
+    }
+
+    uint32_t result = codeword ^ error_pattern;
+
+    *received_word = result;
+
+    return 0;
+}
+
+//подсчет количества ошибок
+int  count_bit_errors()

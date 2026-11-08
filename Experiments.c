@@ -6,6 +6,25 @@
 #define PARITY_BITS 5u
 #define CODE_BITS 31u
 
+typedef struct
+{
+    double p;
+    uint64_t trials;
+
+    uint64_t uncoded_bit_errors;
+    uint64_t coded_bit_errors;
+
+    uint64_t uncoded_block_errors;
+    uint64_t coded_block_errors;
+
+    double uncoded_ber;
+    double coded_ber;
+
+    double uncoded_bler;
+    double coded_bler;
+
+} BSCExperimentResult;
+
 //инициализация генератора псевдослучайных чисел
 void init_random_generator(unsigned int seed)
 {
@@ -13,13 +32,16 @@ void init_random_generator(unsigned int seed)
 }
 
 //создание ошибок при прохождении канала
-int apply_bsc_channel(uint32_t codeword, double p, uint32_t *received_word)
+int apply_bsc_channel(uint32_t codeword,unsigned int bit_count, double p, uint32_t *received_word)
 {
-    if (((codeword >> CODE_BITS) != 0u) || (p <= 0) || (p >= 1) || (received_word == NULL)) return -1;
-
+    if (received_word == NULL) return -1;
+    if (bit_count == 0u || bit_count > CODE_BITS) return -1;
+    if ((codeword >> bit_count) != 0u) return -1;
+    if (!(p >= 0.0 && p <= 1.0)) return -1;
+    
     uint32_t result = codeword;
 
-    for (unsigned int position = 0; position < CODE_BITS; position++)
+    for (unsigned int position = 0; position < bit_count; position++)
     {
         double random_value = (double)rand() / ((double)RAND_MAX + 1.0);
 
@@ -84,4 +106,46 @@ int apply_error_pattern(uint32_t codeword, uint32_t error_pattern, uint32_t *rec
 }
 
 //подсчет количества ошибок
-int  count_bit_errors()
+int  count_bit_errors(uint32_t original_word, uint32_t received_word, unsigned int bit_count)
+{
+    if (bit_count == 0u || bit_count > CODE_BITS) return -1;
+
+    if ((original_word >> bit_count) != 0u || (received_word >> bit_count) != 0u) return -1;
+
+    uint32_t difference = original_word ^ received_word;
+
+    unsigned int errors = 0u;
+
+    for (unsigned int bit_index = 0u; bit_index < bit_count; bit_index++)
+    {
+        if (get_bit(difference, bit_index)) errors++;
+    }
+
+    return errors;
+}
+
+//функция экспериментов
+int run_bsc_experiment (double p, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], BSCExperimentResult *result)
+{
+    if (result == NULL) return -1;
+    if (trials == 0) return -1;
+    if (!(p >= 0 && p <= 1)) return -1;
+    if (trials > UINT64_MAX / INFO_BITS) return -1;
+
+    BSCExperimentResult temp = {0};
+
+    temp.p = p;
+    temp.trials = trials;
+
+    const uint32_t information_word = UINT32_C(0x01234567);
+    const uint32_t codeword = encode_hamming(information_word);
+
+    for (unsigned int trial = 0u; trial < trials; trial++)
+    {
+        uint32_t received_information_word = 0u;
+
+        apply_bsc_channel(information_word, INFO_BITS, p, &received_information_word);  
+
+        
+    }
+}

@@ -1,3 +1,4 @@
+#include <corecrt.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "Hamming.h"
@@ -6,20 +7,33 @@ typedef struct
 {
     double p;
     uint64_t trials;
-
+    
     uint64_t uncoded_bit_errors;
     uint64_t coded_bit_errors;
-
+    
     uint64_t uncoded_block_errors;
     uint64_t coded_block_errors;
-
+    
     double uncoded_ber;
     double coded_ber;
-
+    
     double uncoded_bler;
     double coded_bler;
-
+    
 } BSCExperimentResult;
+
+typedef struct
+{
+    unsigned int weight;
+    uint64_t trials;
+    
+    uint64_t bit_errors;
+    uint64_t block_errors;
+    
+    double ber;
+    double bler;
+    
+} FixedWeightExperimentResult;
 
 //инициализация генератора псевдослучайных чисел
 void init_random_generator(unsigned int seed)
@@ -188,6 +202,23 @@ int run_bsc_experiment (double p, uint64_t trials, const uint8_t H[PARITY_BITS][
     temp.coded_bler = (double)temp.coded_block_errors / ((double)trials);
     
     *result = temp;
+    
+    return 0;
+}
+
+//моделирование канала с разными вероятностями
+int run_bsc_experiments(const double probabilities[], unsigned int probability_count, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], BSCExperimentResult results[])
+{
+    if (probabilities == NULL) return -1;
+    if (probability_count == 0u) return -1;
+    if (trials == 0u) return -1;
+    if (H == NULL) return -1;
+    if (results == NULL) return -1;
+    
+    for (unsigned int i = 0; i < probability_count; i++)
+    {
+        if (run_bsc_experiment(probabilities[i], trials, H, &results[i]) != 0) return -1;
+    }
     
     return 0;
 }

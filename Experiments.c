@@ -19,7 +19,6 @@ typedef struct
     
     double uncoded_bler;
     double coded_bler;
-    
 } BSCExperimentResult;
 
 typedef struct
@@ -32,7 +31,6 @@ typedef struct
     
     double ber;
     double bler;
-    
 } FixedWeightExperimentResult;
 
 //инициализация генератора псевдослучайных чисел
@@ -222,3 +220,66 @@ int run_bsc_experiments(const double probabilities[], unsigned int probability_c
     
     return 0;
 }
+
+//функция эксперимента с определенным количеством ошибок
+int run_fixed_weight_experiment(unsigned int weight, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], FixedWeightExperimentResult *result)
+{
+    if (trials == 0) return -1;
+    if (H == NULL) return -1;
+    if (result == NULL) return -1;
+    if (weight > CODE_BITS) return -1;
+    if (trials > UINT64_MAX / INFO_BITS) return -1;
+    
+    FixedWeightExperimentResult temp = {0};
+    
+    temp.weight = weight;
+    temp.trials = trials;
+    
+    const uint32_t information_word = UINT32_C(0x01234567);
+    const uint32_t codeword = encode_hamming(information_word);
+    
+    uint32_t error_pattern = 0u;
+    uint32_t received_codeword = 0u;
+    uint32_t decoded_information_word = 0u;
+    
+    for (uint64_t trial = 0; trial < trials; trial++)
+    {
+        if (generate_error_pattern(weight, &error_pattern) != 0) return -1;
+        
+        if (apply_error_pattern(codeword, error_pattern, &received_codeword) != 0) return -1;
+        
+        if (decode_hamming(received_codeword, H, &decoded_information_word) < 0) return -1;
+
+        int coded_fixed_bit_error = count_bit_errors(information_word,decoded_information_word, INFO_BITS);
+        if (coded_fixed_bit_error < 0) return -1;
+
+        temp.bit_errors += (uint64_t)coded_fixed_bit_error;
+        if (coded_fixed_bit_error > 0)
+        {
+            temp.block_errors++;
+        }
+    }
+
+    temp.ber = (double) temp.bit_errors / ((double) trials * (double) INFO_BITS);
+    temp.bler = (double) temp.block_errors / (double) trials;
+
+    *result = temp;
+
+    return 0;
+}
+
+//моделирование канала с определенным количеством ошибок
+int run_fixed_weight_experiments(uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], FixedWeightExperimentResult results[])
+{
+    if (trials == 0u) return -1;
+    if (H == NULL) return -1;
+    if (results == NULL) return -1;
+
+    for (unsigned int weight = 0u; weight <= CODE_BITS; weight++)
+    {
+        if (run_fixed_weight_experiment(weight, trials, H, &results[weight]) != 0) return -1;
+    }
+
+    return 0;
+}
+

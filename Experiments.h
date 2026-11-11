@@ -3,10 +3,6 @@
 #include <stdlib.h>
 #include "Hamming.h"
 
-#define INFO_BITS 26u
-#define PARITY_BITS 5u
-#define CODE_BITS 31u
-
 typedef struct
 {
     double p;
@@ -48,3 +44,5 @@ int  count_bit_errors(uint32_t original_word, uint32_t received_word, unsigned i
 
 int run_bsc_experiment (double p, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], BSCExperimentResult *result);
 int run_bsc_experiments(const double probabilities[], unsigned int probability_count, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], BSCExperimentResult results[]);
+int run_fixed_weight_experiment(unsigned int weight, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], FixedWeightExperimentResult *result);
+int run_fixed_weight_experiments(uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], FixedWeightExperimentResult results[]);

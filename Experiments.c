@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include "Hamming.h"
 
-#define INFO_BITS 26u
-#define PARITY_BITS 5u
-#define CODE_BITS 31u
-
 typedef struct
 {
     double p;
@@ -109,18 +105,18 @@ int apply_error_pattern(uint32_t codeword, uint32_t error_pattern, uint32_t *rec
 int  count_bit_errors(uint32_t original_word, uint32_t received_word, unsigned int bit_count)
 {
     if (bit_count == 0u || bit_count > CODE_BITS) return -1;
-
+    
     if ((original_word >> bit_count) != 0u || (received_word >> bit_count) != 0u) return -1;
-
+    
     uint32_t difference = original_word ^ received_word;
-
+    
     unsigned int errors = 0u;
-
+    
     for (unsigned int bit_index = 0u; bit_index < bit_count; bit_index++)
     {
         if (get_bit(difference, bit_index)) errors++;
     }
-
+    
     return errors;
 }
 
@@ -131,21 +127,67 @@ int run_bsc_experiment (double p, uint64_t trials, const uint8_t H[PARITY_BITS][
     if (trials == 0) return -1;
     if (!(p >= 0 && p <= 1)) return -1;
     if (trials > UINT64_MAX / INFO_BITS) return -1;
-
+    if (H == NULL) return -1;
+    
     BSCExperimentResult temp = {0};
-
+    
     temp.p = p;
     temp.trials = trials;
-
+    
     const uint32_t information_word = UINT32_C(0x01234567);
     const uint32_t codeword = encode_hamming(information_word);
-
-    for (unsigned int trial = 0u; trial < trials; trial++)
+    
+    for (uint64_t trial = 0u; trial < trials; trial++)
     {
         uint32_t received_information_word = 0u;
-
-        apply_bsc_channel(information_word, INFO_BITS, p, &received_information_word);  
-
         
+        if (apply_bsc_channel(information_word,INFO_BITS, p, &received_information_word) != 0)
+        {
+            return -1;
+        }
+        
+        int uncoded_errors = count_bit_errors(information_word, received_information_word, INFO_BITS);
+        if (uncoded_errors < 0)
+        {
+            return -1;
+        }
+        
+        temp.uncoded_bit_errors += (uint64_t)uncoded_errors;
+        if (uncoded_errors > 0)
+        {
+            temp.uncoded_block_errors++;
+        }
+        uint32_t received_codeword = 0u;
+        
+        
+        if (apply_bsc_channel(codeword, CODE_BITS, p, &received_codeword) != 0)
+        {
+            return -1;
+        }
+        
+        uint32_t decoded_information_word = 0u;
+        
+        int decode_status = decode_hamming(received_codeword, H, &decoded_information_word);
+        
+        if (decode_status < 0) return -1;
+        
+        int coded_errors = count_bit_errors(information_word, decoded_information_word, INFO_BITS);
+        
+        if (coded_errors < 0) return -1;
+        
+        temp.coded_bit_errors += (uint64_t)coded_errors;
+        if (coded_errors > 0)
+        {
+            temp.coded_block_errors++;
+        }
     }
+    
+    temp.uncoded_ber = (double)temp.uncoded_bit_errors / ((double)trials * INFO_BITS);
+    temp.coded_ber = (double)temp.coded_bit_errors / ((double)trials * INFO_BITS);
+    temp.uncoded_bler = (double)temp.uncoded_block_errors / ((double)trials);
+    temp.coded_bler = (double)temp.coded_block_errors / ((double)trials);
+    
+    *result = temp;
+    
+    return 0;
 }

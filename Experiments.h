@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "Hamming.h"
+#include <inttypes.h>
+
+#define MAX_EXHAUSTIVE_WEIGHT 3u
 
 typedef struct
 {
@@ -35,6 +38,19 @@ typedef struct
     
 } FixedWeightExperimentResult;
 
+typedef struct
+{
+    unsigned int weight;
+    uint64_t patterns_tested;
+
+    uint64_t bit_errors;
+    uint64_t block_errors;
+
+    double ber;
+    double bler;
+
+} ExhaustiveWeightResult;
+
 void init_random_generator(unsigned int seed);
 
 int apply_bsc_channel(uint32_t codeword,unsigned int bit_count, double p, uint32_t *received_word);
@@ -44,5 +60,13 @@ int  count_bit_errors(uint32_t original_word, uint32_t received_word, unsigned i
 
 int run_bsc_experiment (double p, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], BSCExperimentResult *result);
 int run_bsc_experiments(const double probabilities[], unsigned int probability_count, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], BSCExperimentResult results[]);
+
 int run_fixed_weight_experiment(unsigned int weight, uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], FixedWeightExperimentResult *result);
 int run_fixed_weight_experiments(uint64_t trials, const uint8_t H[PARITY_BITS][CODE_BITS], FixedWeightExperimentResult results[]);
+
+int run_exhaustive_weight_experiment(unsigned int weight, const uint8_t H[PARITY_BITS][CODE_BITS], ExhaustiveWeightResult *result);
+int run_exhaustive_experiment(const uint8_t H[PARITY_BITS][CODE_BITS], ExhaustiveWeightResult results[]);
+
+int save_bsc_results_csv(const char *filename, const BSCExperimentResult results[], unsigned int result_count);
+int save_fixed_weight_results_csv(const char *filename, const FixedWeightExperimentResult results[], unsigned int result_count);
+int save_exhaustive_results_csv(const char *filename, const ExhaustiveWeightResult results[], unsigned int result_count);

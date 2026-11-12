@@ -1,0 +1,41 @@
+# Compiled executables
+*.exe
+*.out
+
+# Object files and compiled libraries
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+
+# Generated experiment results
+bsc_results.csv
+fixed_weight_results.csv
+exhaustive_results.csv
+
+# Build directories
+/build/
+/bin/
+/obj/
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# clangd and other tool caches
+.cache/
+.clangd/index/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*~
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
